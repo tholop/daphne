@@ -481,18 +481,19 @@ impl AsRef<DapTaskConfig> for DapTaskConfig {
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DapMeasurement {
-    U64(u64),
-    U32Vec(Vec<u32>),
-    U128Vec(Vec<u128>),
+    U64(u64),           // For Count
+    U128(u128),         // For Sum and Histogram
+    U32Vec(Vec<u32>),   // Used by Prio2
+    U128Vec(Vec<u128>), // For SumVec
 }
 
 /// The aggregate result computed by the Collector.
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DapAggregateResult {
-    U32Vec(Vec<u32>),
     U64(u64),
     U128(u128),
+    U32Vec(Vec<u32>),
     U128Vec(Vec<u128>),
 }
 

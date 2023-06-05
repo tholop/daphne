@@ -52,13 +52,13 @@ pub(crate) fn prio3_shard(
             let vdaf = Prio3::new_count(2)?;
             Ok(shard!(vdaf, &measurement, nonce))
         }
-        (Prio3Config::Histogram { buckets }, DapMeasurement::U64(measurement)) => {
+        (Prio3Config::Histogram { buckets }, DapMeasurement::U128(measurement)) => {
             let vdaf = Prio3::new_histogram(2, buckets)?;
-            Ok(shard!(vdaf, &(measurement as u128), nonce))
+            Ok(shard!(vdaf, &measurement, nonce))
         }
-        (Prio3Config::Sum { bits }, DapMeasurement::U64(measurement)) => {
+        (Prio3Config::Sum { bits }, DapMeasurement::U128(measurement)) => {
             let vdaf = Prio3::new_sum(2, *bits)?;
-            Ok(shard!(vdaf, &(measurement as u128), nonce))
+            Ok(shard!(vdaf, &measurement, nonce))
         }
         (Prio3Config::SumVec { bits, len }, DapMeasurement::U128Vec(measurement)) => {
             let vdaf = Prio3::new_sum_vec(2, *bits, *len)?;

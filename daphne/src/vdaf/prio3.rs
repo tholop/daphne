@@ -7,8 +7,11 @@ use crate::{
     vdaf::VdafError, DapAggregateResult, DapMeasurement, Prio3Config, VdafAggregateShare,
     VdafMessage, VdafState,
 };
+use fixed::traits::Fixed;
 use prio::{
     codec::{Encode, ParameterizedDecode},
+    field::Field128,
+    flp::types::fixedpoint_l2::{compatible_float::CompatibleFloat, FixedPointBoundedL2VecSum},
     vdaf::{
         prio3::{
             Prio3, Prio3InputShare, Prio3PrepareMessage, Prio3PrepareShare, Prio3PrepareState,
@@ -18,7 +21,6 @@ use prio::{
     },
 };
 use std::io::Cursor;
-
 const ERR_EXPECT_FINISH: &str = "unexpected transition (continued)";
 const ERR_FIELD_TYPE: &str = "unexpected field type for step or message";
 
@@ -64,6 +66,19 @@ pub(crate) fn prio3_shard(
             let vdaf = Prio3::new_sum_vec(2, *bits, *len)?;
             Ok(shard!(vdaf, &measurement, nonce))
         }
+        // TODO(tholop): enum type instead? Can't use OR match with different types.
+        (Prio3Config::FixedPointBoundedL2VecSum { len }, DapMeasurement::F16Vec(measurement)) => {
+            let vdaf = Prio3::new_fixedpoint_boundedl2_vec_sum(2, *len)?;
+            Ok(shard!(vdaf, &measurement, nonce))
+        }
+        (Prio3Config::FixedPointBoundedL2VecSum { len }, DapMeasurement::F32Vec(measurement)) => {
+            let vdaf = Prio3::new_fixedpoint_boundedl2_vec_sum(2, *len)?;
+            Ok(shard!(vdaf, &measurement, nonce))
+        }
+        (Prio3Config::FixedPointBoundedL2VecSum { len }, DapMeasurement::F64Vec(measurement)) => {
+            let vdaf = Prio3::new_fixedpoint_boundedl2_vec_sum(2, *len)?;
+            Ok(shard!(vdaf, &measurement, nonce))
+        }
         _ => panic!("prio3_shard: unexpected VDAF config"),
     }
 }
@@ -97,7 +112,9 @@ macro_rules! prep_init {
 }
 
 /// Consume an input share and return the corresponding VDAF step and message.
-pub(crate) fn prio3_prepare_init(
+/// TODO(tholop): do I really need the trait bound here? Otherwise I can't call new_fixedpoint_boundedl2_vec_sum
+/// Alternative: use a different enum depending on the actual F16/32/64 measurement?
+pub(crate) fn prio3_prepare_init<Fx: Fixed + CompatibleFloat<Field128>>(
     config: &Prio3Config,
     verify_key: &[u8; 16],
     agg_id: usize,
@@ -153,6 +170,22 @@ pub(crate) fn prio3_prepare_init(
         }
         Prio3Config::SumVec { bits, len } => {
             let vdaf = Prio3::new_sum_vec(2, *bits, *len)?;
+            let (state, share) = prep_init!(
+                vdaf,
+                verify_key,
+                agg_id,
+                nonce,
+                public_share_data,
+                input_share_data
+            );
+            Ok((
+                VdafState::Prio3Field128(state),
+                VdafMessage::Prio3ShareField128(share),
+            ))
+        }
+        Prio3Config::FixedPointBoundedL2VecSum { len } => {
+            let vdaf: Prio3<FixedPointBoundedL2VecSum<Fx, _, _, _>, _, 16> =
+                Prio3::new_fixedpoint_boundedl2_vec_sum(2, *len)?;
             let (state, share) = prep_init!(
                 vdaf,
                 verify_key,

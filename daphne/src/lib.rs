@@ -52,6 +52,10 @@ use crate::{
     },
 };
 use constants::DapMediaType;
+use fixed::{
+    types::extra::{U15, U31, U63},
+    FixedI16, FixedI32, FixedI64,
+};
 use prio::{
     codec::{CodecError, Decode, Encode},
     vdaf::Aggregatable as AggregatableTrait,
@@ -65,7 +69,6 @@ use std::{
     fmt::{Debug, Display},
 };
 use url::Url;
-
 /// DAP errors.
 #[derive(Debug, thiserror::Error)]
 pub enum DapError {
@@ -480,12 +483,16 @@ impl AsRef<DapTaskConfig> for DapTaskConfig {
 }
 
 /// A measurement from which a Client generates a report.
-#[derive(Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
+// #[derive(Deserialize, Serialize)]
+// #[serde(rename_all = "snake_case")]
+// TODO(tholop): implement Serialize and Deserialize for Fixed-point types? But is that really necessary?
 pub enum DapMeasurement {
     U64(u64),
     U32Vec(Vec<u32>),
     U128Vec(Vec<u128>),
+    F16Vec(Vec<FixedI16<U15>>),
+    F32Vec(Vec<FixedI32<U31>>),
+    F64Vec(Vec<FixedI64<U63>>),
 }
 
 /// The aggregate result computed by the Collector.
@@ -496,6 +503,7 @@ pub enum DapAggregateResult {
     U64(u64),
     U128(u128),
     U128Vec(Vec<u128>),
+    // TODO(tholop): add fixed-point, with extra bits for the norm?
 }
 
 /// The Leader's state after sending an AggregateInitReq.
@@ -746,6 +754,10 @@ pub enum Prio3Config {
     /// The element-wise sum of vectors. Each vector has `len` elements.
     /// Each element is a 64-bit unsigned integer in range `[0,2^bits)`.
     SumVec { bits: usize, len: usize },
+
+    /// The fixed point vector sum type. Each measurement is a vector of `len` fixed point numbers
+    /// and the aggregate is the sum represented as 64-bit floats.
+    FixedPointBoundedL2VecSum { len: usize },
 }
 
 impl Display for Prio3Config {
@@ -757,6 +769,9 @@ impl Display for Prio3Config {
             }
             Prio3Config::Sum { bits } => write!(f, "Sum({bits})"),
             Prio3Config::SumVec { bits, len } => write!(f, "SumVec({bits},{len})"),
+            Prio3Config::FixedPointBoundedL2VecSum { len } => {
+                write!(f, "FixedPointBoundedL2VecSum({len})")
+            }
         }
     }
 }

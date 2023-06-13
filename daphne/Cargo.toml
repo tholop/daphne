@@ -21,12 +21,13 @@ crate-type = ["cdylib", "rlib"]
 assert_matches.workspace = true
 async-trait.workspace = true
 base64 = "0.21.2"
+fixed = "1.23.1"
 futures.workspace = true
 hex.workspace = true
 hpke-rs = { workspace = true , features = ["hazmat", "serialization"] }
 hpke-rs-crypto = { version = "0.1.1" }
 hpke-rs-rust-crypto = { version = "0.1.1"}
-prio = { workspace = true, features = ["prio2"] }
+prio = { workspace = true, features = ["prio2", "experimental"] }
 prometheus.workspace = true
 rand.workspace = true
 ring.workspace = true
